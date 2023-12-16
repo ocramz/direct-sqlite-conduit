@@ -1,5 +1,3 @@
 # direct-sqlite-conduit
 
-[![Build Status](https://travis-ci.org/githubuser/direct-sqlite-conduit.png)](https://travis-ci.org/githubuser/direct-sqlite-conduit)
-
-TODO Description.
+stream data in and out of SQLite3 databases with `direct-sqlite` and `conduit`.

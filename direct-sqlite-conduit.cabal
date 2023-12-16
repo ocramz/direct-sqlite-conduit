@@ -22,6 +22,7 @@ library
   exposed-modules:     Database.SQLite3.Conduit
   build-depends:       base >= 4.7 && < 5
                      , conduit
+                     , containers >= 0.6.7
                      , direct-sqlite
                      , resourcet
                      , text
