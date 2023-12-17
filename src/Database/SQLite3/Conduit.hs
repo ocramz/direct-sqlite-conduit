@@ -1,6 +1,7 @@
 {-# LANGUAGE LambdaCase #-}
 module Database.SQLite3.Conduit (
-  sinkRows
+  createTable
+  , sinkRows
   , sourceRows
   -- * helpers
   , withDatabase
@@ -8,6 +9,7 @@ module Database.SQLite3.Conduit (
   ) where
 
 import Control.Monad.IO.Class (MonadIO(..))
+import Data.Functor (void)
 import Data.List (intercalate)
 
 -- conduit
@@ -16,9 +18,9 @@ import Conduit (ConduitT, await, yieldM)
 -- containers
 import qualified Data.Map as M (Map, toList)
 -- direct-sqlite
-import Database.SQLite3 (Database, open, close, Statement, exec, prepare, finalize, step, StepResult(..), columns, columnText, columnInt64, columnDouble, SQLData(..))
+import Database.SQLite3 (Database, open, close, Statement, exec, prepare, finalize, step, StepResult(..), columns, columnText, columnInt64, columnDouble, SQLData(..), ColumnType(..))
 -- resourcet
-import Control.Monad.Trans.Resource (MonadResource(..), allocate)
+import Control.Monad.Trans.Resource (MonadResource(..), allocate, register)
 -- text
 import Data.Text (Text, pack, unpack)
 import Data.Text.Encoding (decodeUtf8)
@@ -34,6 +36,24 @@ withDatabase path = snd <$> allocate (open $ pack path) close
 withStatement :: MonadResource f => Database -> Text -> f Statement
 withStatement db sql = snd <$> allocate (prepare db sql) finalize
 
+createTable :: MonadResource f =>
+               Database
+            -> String -- ^ table name
+            -> [(String, ColumnType)] -- ^ table schema
+            -> f ()
+createTable db tname schema = void $ register $ exec db stmt
+  where
+    stmt = pack $ unwords ["CREATE TABLE", tname, tupled (map fromColNameType schema)]
+
+fromColNameType :: (String, ColumnType) -> String
+fromColNameType (n, ty) = unwords [n, fromColType ty]
+  where
+    fromColType = \case
+      IntegerColumn -> "INTEGER"
+      FloatColumn -> "REAL"
+      TextColumn -> "TEXT"
+      NullColumn -> "NULL"
+      BlobColumn -> "BLOB"
 
 -- | Stream out the rows resulting from a SELECT statement
 sourceRows :: MonadIO m => Statement -> ConduitT i [SQLData] m ()
